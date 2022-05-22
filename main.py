@@ -85,10 +85,22 @@ files = {"file": open(fpath, "rb")}
 
 # ANCHOR Send the file to the server
 
-resp = requests.post(
-    "https://sm-upload.pintermor9.repl.co/upload",
-    files=files,
-)
+while True:
+    password = input("Kérlek add meg a jelszót (amit elküldtem discordra): ")
 
-print(resp.text)
+    try:
+        resp = requests.post(
+            f"https://sm-upload.pintermor9.repl.co/upload?password={password}",
+            files=files,
+        )
+    except requests.exceptions.SSLError:
+        print("Hibás jelszó!")
+
+    else:
+        if resp.status_code == 200:
+            print(resp.text)
+            break
+
+        print("hiba:\n\n" + resp.text + "\n\nha többször megtörtén szólj nekem!")
+
 click.pause()
