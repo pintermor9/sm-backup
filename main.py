@@ -1,11 +1,40 @@
 import json
 import click
 import requests
-import os
+import os, re
 
 APPDATA = os.getenv("APPDATA")
 
+__version__ = "0.0.1"
 
+print(__file__)
+
+def check_for_updates():
+    print("Frissítések keresése...")
+    try:
+        resp = requests.get(
+            "https://raw.githubusercontent.com/pintermor9/sm-backup/main/main.py"
+        )
+    except requests.exceptions.SSLError:
+        print("Hiba történt a frissítés keresése közben!")
+        return
+    else:
+        if resp.status_code == 200:
+            new_version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', resp.text, re.MULTILINE).group(1)
+            if new_version != __version__:
+                print("Frissítés érzékelve!")
+                print("Frissítés letöltése...")
+                with open("main.py", "w") as f:
+                    f.write(resp.text)
+                print("Frissítés sikeres!")
+            else:
+                print("Nincs frissítés!")
+        else:
+            print("Hiba történt a frissítés keresése közben!")
+                
+
+
+# ANCHOR Manual config
 def manual_config():
     print(
         "Hiba történt a konfigurációs fájl automatikus generálása közben. Manuális beállítás szükséges:"
@@ -21,7 +50,7 @@ def manual_config():
         else:
             return {"savedir": inp.replace("%appdata%", APPDATA)}
 
-
+#ANCHOR autoconfig
 def generate_config():
     print("Konfigurációs fájl generálása...")
     if not os.path.exists(f"{APPDATA}\\Axolot Games\\Scrap Mechanic\\User"):
@@ -41,7 +70,7 @@ def generate_config():
                     "savedir": f"{APPDATA}\\Axolot Games\\Scrap Mechanic\\User\\{user}\\Save\\Survival"
                 }
 
-
+#ANCHOR save config
 def save_config(conf):
     print("Konfiguráció mentése...")
     if not os.path.exists(f"{APPDATA}\\pintermor9"):
@@ -49,58 +78,64 @@ def save_config(conf):
     with open(f"{APPDATA}\\pintermor9\\sm-upload.json", "w") as f:
         json.dump(conf, f)
 
-
+#ANCHOR load config
 def load_config():
     print("Konfiguráció betöltése...")
     with open(f"{APPDATA}\\pintermor9\\sm-upload.json", "r") as f:
         return json.load(f)
 
 
-if not os.path.exists(f"{APPDATA}\\pintermor9\\sm-upload.json"):
-    print("1. indítás érzékelve, konfiguráció generálása")
-    conf = generate_config()
-    save_config(conf)
-else:
-    conf = load_config()
-
-while True:
-    last = conf.get("last_file")
-    last_text = ""
-    if last:
-        last_text = f"[alapértelmezett = {last}]"
-    fn = input(
-        f"Melyik világot szeretnéd feltölteni (.db fájl neve; pl. Kozos_4)\n{last_text} > "
-    )
-    if fn == "" and last:
-        fn = last
-    if os.path.exists(fpath := f"{conf['savedir']}\\{fn.replace('.db', '')}.db"):
-        conf.update({"last_file": fn})
+def main():
+    if not os.path.exists(f"{APPDATA}\\pintermor9\\sm-upload.json"):
+        print("1. indítás érzékelve, konfiguráció generálása")
+        conf = generate_config()
         save_config(conf)
-        print("Fájl létezik, feltöltés...")
-        break
     else:
-        print("Nem létezik ilyen fájl!")
+        conf = load_config()
 
-files = {"file": open(fpath, "rb")}
-
-# ANCHOR Send the file to the server
-
-while True:
-    password = input("Kérlek add meg a jelszót (amit elküldtem discordra): ")
-
-    try:
-        resp = requests.post(
-            f"https://sm-upload.pintermor9.repl.co/upload?password={password}",
-            files=files,
+    while True:
+        last = conf.get("last_file")
+        last_text = ""
+        if last:
+            last_text = f"[{last}]"
+        fn = input(
+            f"Melyik világot szeretnéd feltölteni (.db fájl neve; pl. Kozos_4) [default]\n{last_text} > "
         )
-    except requests.exceptions.SSLError:
-        print("Hibás jelszó!")
-
-    else:
-        if resp.status_code == 200:
-            print(resp.text)
+        if fn == "" and last:
+            fn = last
+        if os.path.exists(fpath := f"{conf['savedir']}\\{fn.replace('.db', '')}.db"):
+            conf.update({"last_file": fn})
+            save_config(conf)
+            print("Fájl létezik, feltöltés...")
             break
+        else:
+            print("Nem létezik ilyen fájl!")
 
-        print("hiba:\n\n" + resp.text + "\n\nha többször megtörtén szólj nekem!")
+    files = {"file": open(fpath, "rb")}
 
-click.pause()
+    # ANCHOR Send the file to the server
+
+    while True:
+        password = input("Kérlek add meg a jelszót (amit elküldtem discordra): ")
+
+        try:
+            resp = requests.post(
+                f"https://sm-upload.pintermor9.repl.co/upload?password={password}",
+                files=files,
+            )
+        except requests.exceptions.SSLError:
+            print("Hibás jelszó!")
+
+        else:
+            if resp.status_code == 200:
+                print(resp.text)
+                break
+
+            print("hiba:\n\n" + resp.text + "\n\nha többször megtörtén szólj nekem!")
+
+
+
+if __name__ == "__main__":
+    check_for_updates()
+    click.pause()
+    main()
