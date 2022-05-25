@@ -5,9 +5,7 @@ import os, re
 
 APPDATA = os.getenv("APPDATA")
 
-__version__ = "0.0.1"
-
-print(__file__)
+__version__ = "0.0.2"
 
 def check_for_updates():
     print("Frissítések keresése...")
