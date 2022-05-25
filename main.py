@@ -5,9 +5,7 @@ import os, re
 
 APPDATA = os.getenv("APPDATA")
 
-__version__ = "0.0.1"
-
-print(__file__)
+__version__ = "0.0.3"
 
 def check_for_updates():
     print("Frissítések keresése...")
@@ -24,7 +22,7 @@ def check_for_updates():
             if new_version != __version__:
                 print("Frissítés érzékelve!")
                 print("Frissítés letöltése...")
-                with open("main.py", "w") as f:
+                with open("main.py", "w", encoding="utf-8") as f:
                     f.write(resp.text)
                 print("Frissítés sikeres!")
             else:
